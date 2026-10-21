@@ -112,3 +112,23 @@ def test_other_dropdowns():
         }
 
 
+def test_invalid_interests():
+
+    response = client.get(
+        "/recommend",
+        params={
+            "budget": "средний",
+            "continent": "азия",
+            "month": 6,
+            "climate": "жаркий",
+            "interests": "космос",
+            "rest": "активный"
+        }
+    )
+
+    assert response.status_code == 400
+
+    assert response.json() == {
+        "detail": "Недопустимые интересы: космос"
+    }
+
