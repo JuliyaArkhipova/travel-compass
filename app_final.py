@@ -1,8 +1,48 @@
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from countries_data import countries
+from enum import Enum
+from typing import Annotated
 import os
 import logging
+
+
+
+
+# Классы для выпадающих списков
+
+class Budget(str, Enum):
+    choose = "Выберите из списка"
+    economy = "экономный"
+    medium = "средний"
+    high = "высокий"
+
+
+class Continent(str, Enum):
+    choose = "Выберите из списка"
+    europe = "европа"
+    asia = "азия"
+    africa = "африка"
+    america = "америка"
+    oceania = "океания"
+    any = "любой"
+
+
+class Climate(str, Enum):
+    choose = "Выберите из списка"
+    hot = "жаркий"
+    warm = "тёплый"
+    moderate = "умеренный"
+    cool = "прохладный"
+
+
+class RestType(str, Enum):
+    choose = "Выберите из списка"
+    calm = "спокойный"
+    active = "активный"
+    mixed = "смешанный"
+
+
 
 # Запускаем логгирование (выводы каждого действия)
 logging.basicConfig(
@@ -172,21 +212,47 @@ def get_country(name: str):
 
 
 # ввод информации от пользователя
+
 @app.get("/recommend")
 def get_recommendations(
-    budget: str,
-    continent: str,
-    month: int,
-    climate: str,
-    interests: str,
-    rest: str
+    budget: Annotated[Budget, Query(description="Выберите из списка")],
+    continent: Annotated[Continent, Query(description="Выберите из списка")],
+    month: Annotated[int, Query(
+        description="Введите номер месяца от 1 до 12",
+        ge=1,
+        le=12
+    )],
+    climate: Annotated[Climate, Query(description="Выберите из списка")],
+    interests: Annotated[str, Query(
+        description="Введите интересы через запятую: море, история, природа, развлечения, гастрономия, спорт"
+    )],
+    rest: Annotated[RestType, Query(description="Выберите из списка")]
 ):
 
-    # Приводим текст к единому формату
-    budget = budget.strip().lower()
-    continent = continent.strip().lower()
-    climate = climate.strip().lower()
-    rest = rest.strip().lower()
+
+    budget = budget.value
+    continent = continent.value
+    climate = climate.value
+    rest = rest.value
+
+    
+    
+    # Проверяем выбор пользователя в каждом поле
+    fields = {
+        "Бюджет": budget,
+        "Континент": continent,
+        "Климат": climate,
+        "Тип отдыха": rest
+    }
+
+    for field_name, value in fields.items():
+        if value == "Выберите из списка":
+            raise HTTPException(
+                status_code=400,
+                detail=f"Поле «{field_name}»: выберите из списка"
+            )
+
+
 
     # Проверяем бюджет
     if budget not in budget_levels:
@@ -202,6 +268,24 @@ def get_recommendations(
             detail="Месяц должен быть от 1 до 12"
         )
 
+
+    # Проверяем страну
+    valid_continents = [
+        "европа",
+        "азия",
+        "африка",
+        "америка",
+        "океания",
+        "любой"
+    ]
+
+    if continent not in valid_continents:
+        raise HTTPException(
+            status_code=400,
+            detail="Некорректный континент"
+        )
+        
+
     # Преобразуем интересы в список
     user_interests = [
         interest.strip().lower()
@@ -210,6 +294,40 @@ def get_recommendations(
     ]
 
     user_interests = list(dict.fromkeys(user_interests))
+
+
+
+    
+    valid_interests = [
+        "море",
+        "история",
+        "природа",
+        "развлечения",
+        "гастрономия",
+        "спорт"
+    ]
+
+
+    # Пользователь не указал интересы вообще или ввёл значение, которого нет в нашем справочнике
+    if not user_interests:
+        raise HTTPException(
+            status_code=400,
+            detail="Укажите хотя бы один интерес"
+        )
+
+    invalid_interests = [
+        interest for interest in user_interests
+        if interest not in valid_interests
+    ]
+
+    if invalid_interests:
+        raise HTTPException(
+            status_code=400,
+            detail="Недопустимые интересы: " + ", ".join(invalid_interests)
+        )
+
+
+    
 
     # Вызываем наш алгоритм
     recommendations = recommend_countries(

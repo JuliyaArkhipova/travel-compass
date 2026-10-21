@@ -53,8 +53,62 @@ def test_invalid_month():
         }
     )
 
+    assert response.status_code == 422
+
+    assert response.json()["detail"][0]["loc"] == ["query", "month"]
+
+
+# тест на ввод бюджета
+def test_invalid_budget():
+
+    response = client.get(
+        "/recommend",
+        params={
+            "budget": "Выберите из списка",
+            "continent": "азия",
+            "month": 6,
+            "climate": "жаркий",
+            "interests": "история",
+            "rest": "активный"
+        }
+    )
+
     assert response.status_code == 400
 
     assert response.json() == {
-        "detail": "Месяц должен быть от 1 до 12"
+        "detail": "Поле «Бюджет»: выберите из списка"
     }
+
+
+    
+def test_other_dropdowns():
+
+    fields = {
+        "continent": "Континент",
+        "climate": "Климат",
+        "rest": "Тип отдыха"
+    }
+
+    for field, field_name in fields.items():
+
+        params = {
+            "budget": "экономный",
+            "continent": "азия",
+            "month": 6,
+            "climate": "жаркий",
+            "interests": "история",
+            "rest": "активный"
+        }
+
+        # Подставляем неправильное значение в проверяемое поле
+        params[field] = "Выберите из списка"
+
+        response = client.get("/recommend", params=params)
+
+        assert response.status_code == 400
+
+        assert response.json() == {
+            "detail": f"Поле «{field_name}»: выберите из списка"
+        }
+
+
