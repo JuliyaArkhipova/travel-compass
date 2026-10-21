@@ -251,39 +251,6 @@ def get_recommendations(
                 status_code=400,
                 detail=f"Поле «{field_name}»: выберите из списка"
             )
-
-
-
-    # Проверяем бюджет
-    if budget not in budget_levels:
-        raise HTTPException(
-            status_code=400,
-            detail="Некорректный бюджет"
-        )
-
-    # Проверяем месяц
-    if month < 1 or month > 12:
-        raise HTTPException(
-            status_code=400,
-            detail="Месяц должен быть от 1 до 12"
-        )
-
-
-    # Проверяем страну
-    valid_continents = [
-        "европа",
-        "азия",
-        "африка",
-        "америка",
-        "океания",
-        "любой"
-    ]
-
-    if continent not in valid_continents:
-        raise HTTPException(
-            status_code=400,
-            detail="Некорректный континент"
-        )
         
 
     # Преобразуем интересы в список
